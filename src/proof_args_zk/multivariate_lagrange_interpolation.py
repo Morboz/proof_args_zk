@@ -7,7 +7,17 @@ class MultilinearPolynomial:
 
 
 class MultilinearLagrangeInterpolationPolynomial(MultilinearPolynomial):
+    """多线性拉格朗日插值多项式"""
+
     def __init__(self, p: int, a: list[int], v: int):
+        """
+
+        Args:
+            p:
+            a: 在插值点的值
+            v: 变量个数
+
+        """
         super().__init__(p)
         self.a = a
         self.v = v
@@ -16,15 +26,25 @@ class MultilinearLagrangeInterpolationPolynomial(MultilinearPolynomial):
         self.multipliation_count = 0
 
     def evaluate(self, x: list[int]) -> int:
+        if len(x) != self.v:
+            raise ValueError("The length of x must be v")
         self.multipliation_count = 0
 
         result = 0
         for i in range(len(self.a)):
-            result = (result + self.a[i] * self._kai_w(x, i)) % self.p
+            result = (
+                result + self.a[i] * self.evaluate_basis_polynomial(x, i)
+            ) % self.p
             self.multipliation_count += 1
         return result
 
-    def _kai_w(self, x: list[int], w: int) -> int:
+    def evaluate_basis_polynomial(self, x: list[int], w: int) -> int:
+        """
+
+        Args:
+            x:
+            w:
+        """
         kai = 1
         for i in range(self.v):
             x_i = x[i]
@@ -59,6 +79,9 @@ class MultilinearLagrangeInterpolationPolynomial(MultilinearPolynomial):
             result = (result + self.a[i] * stage_table[i]) % self.p
             self.multipliation_count += 1
         return result
+
+    def get_basis_polynomial(self, w: int):
+        pass
 
 
 def low_degree_multilinear_extension(a: list[int], r: list[int], v: int, p: int) -> int:

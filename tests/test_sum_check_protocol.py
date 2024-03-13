@@ -1,12 +1,10 @@
 from proof_args_zk.sum_check_protocol import (
-    Polynomial,
+    CoefficientPolynomial,
     PolynomialTerm,
     Prover,
     Verifier,
-    bool_array_to_int,
     fix_some_variables,
     fix_some_variables_in_term,
-    int_to_bool_array,
     sum_check,
 )
 
@@ -53,7 +51,7 @@ def test_poly_evaluate():
     t3 = PolynomialTerm(1, v, [0, 1, 1], 65537)
     t4 = PolynomialTerm(2, v, [0, 0, 0], 65537)
 
-    p = Polynomial(65537, [t1, t2, t3, t4])
+    p = CoefficientPolynomial(65537, [t1, t2, t3, t4])
     assert p.var_count == 3
     # assert p.evaluate([1, 1, 1]) == 4
     assert p.evaluate([0, 0, 0]) == 2
@@ -72,7 +70,7 @@ def test_poly_evaluate2():
     t2 = PolynomialTerm(1, v, [1, 0, 0], 65537)
     t4 = PolynomialTerm(2, v, [0, 0, 0], 65537)
 
-    p = Polynomial(65537, [t1, t2, t4])
+    p = CoefficientPolynomial(65537, [t1, t2, t4])
     assert p.var_count == 1
 
     assert p.evaluate(1) == 5
@@ -84,7 +82,7 @@ def test_poly_evaluate3():
     t2 = PolynomialTerm(1, v, [0, 2, 0], 65537)
     t4 = PolynomialTerm(2, v, [0, 0, 0], 65537)
 
-    p = Polynomial(65537, [t1, t2, t4])
+    p = CoefficientPolynomial(65537, [t1, t2, t4])
     assert p.var_count == 1
 
     assert p.evaluate(1) == 5
@@ -96,7 +94,7 @@ def test_sum_check_protocol():
     t1 = PolynomialTerm(2, v, [3, 0, 0], 65537)
     t2 = PolynomialTerm(1, v, [1, 0, 1], 65537)
     t3 = PolynomialTerm(1, v, [0, 1, 1], 65537)
-    p = Polynomial(65537, [t1, t2, t3])
+    p = CoefficientPolynomial(65537, [t1, t2, t3])
     print(p)
 
     assert p.evaluate([1, 1, 1]) == 4
@@ -155,34 +153,8 @@ def test_sum_check_protocol_total():
     t1 = PolynomialTerm(2, v, [3, 0, 0], 65537)
     t2 = PolynomialTerm(1, v, [1, 0, 1], 65537)
     t3 = PolynomialTerm(1, v, [0, 1, 1], 65537)
-    g = Polynomial(65537, [t1, t2, t3])
+    g = CoefficientPolynomial(65537, [t1, t2, t3])
     prover = Prover(g, v)
     verifier = Verifier(g)
 
     assert sum_check(prover, verifier)
-
-
-def test_int_to_bool_array():
-    assert int_to_bool_array(1, 3) == [1, 0, 0]
-    assert int_to_bool_array(2, 3) == [0, 1, 0]
-    assert int_to_bool_array(3, 3) == [1, 1, 0]
-    assert int_to_bool_array(4, 3) == [0, 0, 1]
-    assert int_to_bool_array(0, 3) == [0, 0, 0]
-    assert int_to_bool_array(7, 3) == [1, 1, 1]
-    assert int_to_bool_array(10, 4) == [0, 1, 0, 1]
-    assert int_to_bool_array(15, 4) == [1, 1, 1, 1]
-    assert int_to_bool_array(16, 5) == [0, 0, 0, 0, 1]
-    assert int_to_bool_array(31, 5) == [1, 1, 1, 1, 1]
-
-
-def test_bool_array_to_int():
-    assert bool_array_to_int([1, 0, 0]) == 1
-    assert bool_array_to_int([0, 1, 0]) == 2
-    assert bool_array_to_int([1, 1, 0]) == 3
-    assert bool_array_to_int([0, 0, 1]) == 4
-    assert bool_array_to_int([0, 0, 0]) == 0
-    assert bool_array_to_int([1, 1, 1]) == 7
-    assert bool_array_to_int([0, 1, 0, 1]) == 10
-    assert bool_array_to_int([1, 1, 1, 1]) == 15
-    assert bool_array_to_int([0, 0, 0, 0, 1]) == 16
-    assert bool_array_to_int([1, 1, 1, 1, 1]) == 31

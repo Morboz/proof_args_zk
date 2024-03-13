@@ -1,6 +1,8 @@
 import copy
 import random
 
+from .utils import int_to_bool_array
+
 
 class PolynomialTerm:
     def __init__(self, cofficient: int, v: int, degrees: list[int], p):
@@ -58,7 +60,7 @@ class PolynomialTerm:
         return s
 
 
-class Polynomial:
+class CoefficientPolynomial:
     def __init__(self, p: int, terms: list[PolynomialTerm]):
         self.p = p
         self.terms = terms
@@ -82,7 +84,7 @@ class Polynomial:
         return " + ".join([str(term) for term in self.terms])
 
     def __add__(self, other):
-        if not isinstance(other, Polynomial):
+        if not isinstance(other, CoefficientPolynomial):
             raise ValueError("The other must be Polynomial")
         if self.p != other.p:
             raise ValueError("The p must be the same")
@@ -96,7 +98,7 @@ class Polynomial:
                     break
             if not new_term_merged:
                 new_terms.append(term)
-        return Polynomial(self.p, new_terms)
+        return CoefficientPolynomial(self.p, new_terms)
 
 
 def fix_some_variables_in_term(term: PolynomialTerm, x: list[int]) -> PolynomialTerm:
@@ -114,7 +116,9 @@ def fix_some_variables_in_term(term: PolynomialTerm, x: list[int]) -> Polynomial
     return PolynomialTerm(new_cofficient, term.v, new_degrees, term.p)
 
 
-def fix_some_variables(poly: Polynomial, x: list[int]) -> Polynomial:
+def fix_some_variables(
+    poly: CoefficientPolynomial, x: list[int]
+) -> CoefficientPolynomial:
     new_terms = []
     for term in poly.terms:
         new_term = fix_some_variables_in_term(term, x)
@@ -126,7 +130,7 @@ def fix_some_variables(poly: Polynomial, x: list[int]) -> Polynomial:
                 break
         if not new_term_merged:
             new_terms.append(new_term)
-    return Polynomial(poly.p, new_terms)
+    return CoefficientPolynomial(poly.p, new_terms)
 
 
 class Prover:
@@ -139,71 +143,41 @@ class Prover:
         sum_ = 0
         # for k in range(self.v):
         #     sum_ += self.g.evaluate([int(i == k) for i in range(self.v)])
-        for i in range(2**self.v):
+        for i in range(1 << self.v):
             # change i to bool list
             b = int_to_bool_array(i, self.v)
             sum_ += self.g.evaluate(b)
         return sum_
 
-    def get_g_i(self, i: int, r: list[int]) -> Polynomial:
+    def get_g_i(self, i: int, r: list[int]) -> CoefficientPolynomial:
+        """
+
+        Args:
+            i (int): ith variable, 0 <= i < v
+            r (list[int]): length is i
+        """
         if i < 0 or i >= self.v:
             raise ValueError("i out of range")
         if len(r) != i:
             raise ValueError("The length of r must be i")
         g_i = None
-        for j in range(2 ** (self.v - 1 - i)):
+        for j in range(1 << (self.v - 1 - i)):
             b = int_to_bool_array(j, self.v - i - 1)
             p_i = fix_some_variables(self.g, r + [None] + b)
             if g_i is None:
                 g_i = p_i
             else:
                 g_i += p_i
+        # g_i 是一个一元多项式
         if g_i.var_count != 1:
             raise ValueError("The var_count of g_i must be 1")
         return g_i
 
 
-def int_to_bool_array(i: int, v: int) -> list[int]:
-    """Convert an integer to a boolean array
-
-    Example:
-        i = 1, v = 3 -> [1, 0, 0]
-        i = 2, v = 3 -> [0, 1, 0]
-        i = 3, v = 3 -> [1, 1, 0]
-        i = 4, v = 3 -> [0, 0, 1]
-        第一位是最低位，最后一位是最高位，b100 -> [0, 0, 1]
-
-        类似小端序, 低位在前，高位在后
-
-    Args:
-        i (int): integer
-        v (int): length of the boolean array
-    """
-    if v == 0:
-        return []
-    return [int(x) for x in reversed(bin(i)[2:].zfill(v))]
-
-
-def bool_array_to_int(b: list[int]) -> int:
-    """Convert a boolean array to an integer
-
-    Example:
-        [1, 0, 0] -> 1
-        [0, 1, 0] -> 2
-        [1, 1, 0] -> 3
-        [0, 0, 1] -> 4
-        [0, 0, 0] -> 0
-
-    Args:
-        b (list[int]): boolean array
-    """
-    return int("".join([str(x) for x in reversed(b)]), 2)
-
-
 class Verifier:
     def __init__(
         self,
-        g: Polynomial,
+        g: CoefficientPolynomial,
     ):
         self.g = g
         self.r = [None for _ in range(self.g.v)]

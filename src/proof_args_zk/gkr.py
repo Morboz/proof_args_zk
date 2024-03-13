@@ -1,9 +1,9 @@
 import random
 
-from proof_args_zk.multivariate_lagrange_interpolation import (
+from .multivariate_lagrange_interpolation import (
     MultilinearLagrangeInterpolationPolynomial,
 )
-from proof_args_zk.sum_check_protocol import bool_array_to_int, int_to_bool_array
+from .utils import bool_array_to_int, int_to_bool_array
 
 
 class Circuit:
@@ -191,11 +191,59 @@ class GKRProver:
 
         self.D0 = None
 
-    def mi(self):
-        pass
+    def mi(self, layer_index: int, ri: list[int]):
+        # k_i+1
+        k_i1 = self.circuit.ki[layer_index + 1]
+        # mi是b,c所有可能输入下fri的求值的和
+        mi = 0
+        for b in range(1 << k_i1):
+            for c in range(1 << k_i1):
+                mi += self.evluate_fri(
+                    layer_index, int_to_bool_array(b, k_i1), int_to_bool_array(c, k_i1)
+                )
+        return mi
 
-    def fri(self):
-        pass
+    def evluate_fri(
+        self, layer_index: int, ri: list[int], b: list[int], c: list[int]
+    ) -> int:
+        """
+
+        Args:
+            b (list[int]): 0 or 1
+            c (list[int]): 0 or 1
+        """
+        prime = self.circuit.layers[layer_index].gates[0].prime
+        add_i = self.circuit.add_i(layer_index)
+        add_i_mle = MultilinearLagrangeInterpolationPolynomial(
+            prime,
+            add_i,
+            self.circuit.ki[layer_index] + 2 * self.circuit.ki[layer_index + 1],
+        )
+        mult_i = self.circuit.mult_i(layer_index)
+        mult_i_mle = MultilinearLagrangeInterpolationPolynomial(
+            prime,
+            mult_i,
+            self.circuit.ki[layer_index] + 2 * self.circuit.ki[layer_index + 1],
+        )
+
+        w_i1 = self.circuit.w(layer_index + 1)
+        w_i1_mle = MultilinearLagrangeInterpolationPolynomial(
+            prime,
+            w_i1,
+            self.circuit.ki[layer_index + 1],
+        )
+
+        fri = (
+            add_i_mle.evaluate(ri + b + c)
+            * (w_i1_mle.evaluate(b) + w_i1_mle.evaluate(c))
+            % prime
+        ) + (
+            mult_i_mle.evaluate(ri + b + c)
+            * w_i1_mle.evaluate(b)
+            * w_i1_mle.evaluate(c)
+        ) % prime
+
+        return fri
 
 
 class GKRVerifier:
@@ -221,6 +269,19 @@ class GKRVerifier:
         self.D0 = D0
         return D0_mle_r0
 
+    def fri_polynomial(self, layer_index: int, ri: list[int]):
+        """
+
+        Args:
+            layer_index:
+            ri: length is k_i
+
+        """
+        k_i = self.circuit.ki[layer_index]
+        if len(ri) != k_i:
+            raise ValueError(f"Length of ri should be {k_i}, got {len(ri)}")
+        pass
+
 
 def gkr(prover: GKRProver, verifier: GKRVerifier):
     # todo
@@ -238,4 +299,17 @@ def gkr(prover: GKRProver, verifier: GKRVerifier):
     # The remainder of the protocol is devoted to confirming that m0 = ˜W0(r0).
 
     for i in range(circuit.depth):
+
+        # prover claim  mi
+        mi = prover.mi(i, verifier.ri[i])
+        # verifier V may check claim
+        # P and V apply the sum-check protocol to f_ri(i)
+
+        # when V must evaluate f_ri(i) at randomly chosen point (b*, c*)
+        # let `l` be the unique line satisfying l(0) = f_ri(i)(b*) and l(1) = f_ri(i)(c*).
+        # P sends a univariate polynomial q of degree at most  k_i+1 to V
+        # V now performs the final check in the sum-check protocol
+        # using q(0) and q(1) inplace of ~w_i+1(b*) and ~w_i+1(c*), respectively
+        # V chose r* belonging to F_p, and sets r_i+1 = l(r*) and m_i+1 = q(r_i+1)
+
         pass

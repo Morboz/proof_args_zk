@@ -100,5 +100,3 @@ def test_gkr(simple_circuit):
     prover = GKRProver(circuit)
     verifier = GKRVerifier(circuit)
     assert gkr(prover, verifier)
-
-    pass
