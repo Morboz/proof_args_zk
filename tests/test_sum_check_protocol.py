@@ -1,3 +1,9 @@
+from proof_args_zk.multivariate_lagrange_interpolation import (
+    MultilinearLagrangeInterpolationPolynomial,
+    MultiplicationPolynomial,
+    PartialPolynomial,
+    PartialSpec,
+)
 from proof_args_zk.sum_check_protocol import (
     CoefficientPolynomial,
     PolynomialTerm,
@@ -158,3 +164,43 @@ def test_sum_check_protocol_total():
     verifier = Verifier(g)
 
     assert sum_check(prover, verifier)
+
+
+def test_matmult_sum_check():
+    # mat n * n, n = 2
+    n = 2
+    # mat A
+
+    A = [0, 1, 2, 0]
+    p = 5
+
+    f_A_mle = MultilinearLagrangeInterpolationPolynomial(p, A, n)
+
+    assert f_A_mle.evaluate([0, 0]) == 0
+    assert f_A_mle.evaluate([1, 0]) == 1
+    assert f_A_mle.evaluate([0, 1]) == 2
+    assert f_A_mle.evaluate([1, 1]) == 0
+
+    B = [1, 0, 0, 4]
+    f_B_mle = MultilinearLagrangeInterpolationPolynomial(p, B, n)
+
+    assert f_B_mle.evaluate([0, 0]) == 1
+    assert f_B_mle.evaluate([1, 0]) == 0
+    assert f_B_mle.evaluate([0, 1]) == 0
+    assert f_B_mle.evaluate([1, 1]) == 4
+
+    # C = [0, 4, 2, 0]
+
+    r1 = [3]
+    r2 = [2]
+
+    r1_partial = PartialSpec(r1, True)
+    f_A_mle_r1 = PartialPolynomial(f_A_mle, r1_partial)
+    r2_partial = PartialSpec(r2, False)
+    f_B_mle_r2 = PartialPolynomial(f_B_mle, r2_partial)
+
+    assert f_A_mle_r1.evaluate([2]) == f_A_mle.evaluate([3, 2])
+    assert f_B_mle_r2.evaluate([3]) == f_B_mle.evaluate([3, 2])
+
+    g = MultiplicationPolynomial(f_A_mle_r1, f_B_mle_r2)
+    assert g.evaluate([2]) == (f_A_mle.evaluate([3, 2]) * f_B_mle.evaluate([2, 2]) % p)

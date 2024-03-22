@@ -191,6 +191,11 @@ class Verifier:
         return r_i
 
 
+class MultilinearInterpolationProver:
+    def get_g_i(self, i: int, r: list[int]):
+        pass
+
+
 def sum_check(prover, verifier) -> bool:
     # prover
     sum_ = prover.calculate_sum()
@@ -219,3 +224,6 @@ def sum_check(prover, verifier) -> bool:
         return False
 
     return True
+
+
+# 使用多线性插值的多项式来完成矩阵乘法的验证

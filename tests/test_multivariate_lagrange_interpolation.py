@@ -3,6 +3,8 @@ import time
 
 from proof_args_zk.multivariate_lagrange_interpolation import (
     MultilinearLagrangeInterpolationPolynomial,
+    PartialPolynomial,
+    PartialSpec,
 )
 from proof_args_zk.univariate_lagrange_interpolation import prime_greater_than
 
@@ -74,3 +76,19 @@ def test_compare_calc_time():
     et2 = time.time()
     print(f"evaluate time: {et1 - st}")
     print(f"evalate_fast time: {et2 - et1}")
+
+
+def test_partial_polynomial():
+    poly2 = MultilinearLagrangeInterpolationPolynomial(11, [1, 3, 2, 4, 5, 7, 6, 8], 3)
+    assert poly2.evaluate_fast([2, 4, 6]) == 0
+    assert poly2.multipliation_count <= 20
+
+    partial = PartialSpec([2, 4], True)
+    partial_poly = PartialPolynomial(poly2, partial)
+
+    assert partial_poly.evaluate([6]) == 0
+
+    partial2 = PartialSpec([4, 6], False)
+    partial_poly2 = PartialPolynomial(poly2, partial2)
+
+    assert partial_poly2.evaluate([2]) == 0

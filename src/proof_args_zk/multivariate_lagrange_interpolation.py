@@ -84,5 +84,47 @@ class MultilinearLagrangeInterpolationPolynomial(MultilinearPolynomial):
         pass
 
 
+class PartialSpec:
+    def __init__(self, partial_args: list[int], prefixed=True):
+        self.partial_args = partial_args
+        self.prefixed = prefixed
+
+
 def low_degree_multilinear_extension(a: list[int], r: list[int], v: int, p: int) -> int:
     return MultilinearLagrangeInterpolationPolynomial(p, a, v).evaluate(r)
+
+
+class PartialPolynomial(MultilinearPolynomial):
+    def __init__(
+        self, poly: MultilinearLagrangeInterpolationPolynomial, partial: PartialSpec
+    ):
+        self.poly = poly
+        self.partial = partial
+        self.p = poly.p
+        self.v = poly.v
+
+    def combine(self, x: list[int]) -> int:
+        if self.partial.prefixed:
+            x = self.partial.partial_args + x
+        else:
+            x = x + self.partial.partial_args
+        if len(x) != self.poly.v:
+            raise ValueError("The length of x must be v")
+        return x
+
+    def evaluate(self, x: list[int]) -> int:
+        return self.poly.evaluate(self.combine(x))
+
+
+class MultiplicationPolynomial(MultilinearPolynomial):
+    def __init__(self, left: MultilinearPolynomial, right: MultilinearPolynomial):
+        if left.p != right.p:
+            raise ValueError("The p of left and right must be equal")
+        if left.v != right.v:
+            raise ValueError("The v of left and right must be equal")
+        super().__init__(left.p)
+        self.left = left
+        self.right = right
+
+    def evaluate(self, x: list[int]) -> int:
+        return (self.left.evaluate(x) * self.right.evaluate(x)) % self.p
